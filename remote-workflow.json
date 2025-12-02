@@ -1,0 +1,425 @@
+{
+  "name": "remote-workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "8d039192-675a-48fa-a639-eecc9d055693",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -816,
+        -544
+      ],
+      "id": "2126de43-cc6b-412f-b186-2f3d47f3aec0",
+      "name": "Webhook",
+      "webhookId": "8d039192-675a-48fa-a639-eecc9d055693"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.data.message.conversation }}",
+        "options": {
+          "systemMessage": "=أنت موظف مبيعات محترف في معرض سيارات.  \nتعتمد في جميع إجاباتك فقط وحصريًا على البيانات الموجودة في ملف جوجل شيت الخاص بالسيارات.  \nيُمنع منعًا باتًا إضافة أي معلومة غير موجودة في جوجل شيت.\n\n### دورك:\n- عندما يسأل العميل عن العربيات المتاحة: اعرض له كل السيارات المتوفرة في جوجل شيت فقط.\n- عندما يطلب موديل معيّن: اعرض مواصفاته وسعره كما هو موجود في جوجل شيت دون زيادة.\n- لو العميل طلب المميزات والعيوب:  \n    - المميزات: استخرجها من البيانات إن وجدت.  \n    - العيوب: اذكر فقط العيوب الموجودة في الشيت.  \n    - إذا لم يوجد عيوب أو مميزات في الشيت قل: \"غير متوفر في البيانات\".\n- لو العميل قال إنه عايز يشتري:  \n    - رد عليه: \"تمام\"  \n    - ثم جهّز رسالة تحتوي على رقم هاتفه واسمه، وأرسلهم للإيميل الخاص بـ Gmail عن طريق النود التالي في الـ workflow.\n\n### بيانات العميل:\nرقم الهاتف: {{ $json.body.data.key.remoteJid }}  \nاسم العميل على واتساب: {{ $json.body.data.pushName }}\n\n### تعليمات مهمة:\n- لا تستخدم أي مصدر خارج جوجل شيت.\n- لا تذكر أنك تعتمد على جوجل شيت في الرد.\n- اجعل كلامك مهذب ومحترف ومباشر.\n- قدم الردود باللغة العربية فقط.\n- في حالة طلب سيارة غير موجودة في جوجل شيت:  \n  قل له: \"غير متوفر في الوقت الحالي.\"\n\nابدأ الآن في الرد على العميل بناءً على الرسالة التي يرسلها لك.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        144,
+        -496
+      ],
+      "id": "969e9728-399d-4566-9cf2-18bc6c9f4938",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        80,
+        -272
+      ],
+      "id": "76e04202-2b5f-4ff0-b795-a87e8b8c0d9d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "dvi83g74NPNo6Snj",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Webhook').item.json.body.instance }}",
+        "remoteJid": "={{ $('Webhook').item.json.body.data.key.remoteJidAlt.split('@')[0] }}",
+        "messageText": "={{ $json.output }}",
+        "options_message": {
+          "delay": 10000
+        }
+      },
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        528,
+        -496
+      ],
+      "id": "eb009cc6-8f3f-49d7-a1a9-5083ee99802d",
+      "name": "Send text",
+      "credentials": {
+        "evolutionApi": {
+          "id": "YcHhXRu9nFdiGhe6",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.data.message.conversation }}",
+        "contextWindowLength": 30
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        -240
+      ],
+      "id": "7f8d8858-dc7b-43dd-9053-89d266804356",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e7d9dc90-04fa-4264-a680-12d44130d408",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "on",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "9b9295e0-41ec-42e6-9eec-54c16a9ef139",
+              "leftValue": "={{ $('Webhook').item.json.body.data.message.conversation }}",
+              "rightValue": "start",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "dc6d6ac4-1156-431e-9694-e5b99db76769",
+              "leftValue": "={{ $('Webhook').item.json.body.data.message.conversation }}",
+              "rightValue": "stop",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        -480
+      ],
+      "id": "9655091d-c39d-47e5-ae8d-766279492eb2",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "bODUdbjzEyL2R0XO",
+          "mode": "list",
+          "cachedResultName": "agent_status",
+          "cachedResultUrl": "/projects/vjPUZwT7ULB6hjY7/datatables/bODUdbjzEyL2R0XO"
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -480
+      ],
+      "id": "a8410ea2-36dd-403e-a762-d4f192ac18dd",
+      "name": "Get row(s)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $input.first().json.body.data.message.conversation;\nreturn { result: message === \"start\" ? \"on\" : message === \"stop\" ? \"off\" : \"Error\" };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        -720
+      ],
+      "id": "4b53294b-e489-423b-a369-c222599bf9f1",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "bODUdbjzEyL2R0XO",
+          "mode": "list",
+          "cachedResultName": "agent_status",
+          "cachedResultUrl": "/projects/vjPUZwT7ULB6hjY7/datatables/bODUdbjzEyL2R0XO"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "1"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "={{ $json.result }}"
+          },
+          "matchingColumns": [
+            "status"
+          ],
+          "schema": [
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "dryRun": false
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -736
+      ],
+      "id": "1401bbc1-056c-44f3-8c56-a34dbf410ece",
+      "name": "Update row(s)"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "messageText": "=status: {{ $json.status }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        256,
+        -736
+      ],
+      "id": "359eb042-cfdc-4ba5-8512-62c66ef961f8",
+      "name": "Send text1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "YcHhXRu9nFdiGhe6",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e7d9dc90-04fa-4264-a680-12d44130d408",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": "on",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "5c0f16af-a7b0-46f9-a01b-3e32bc0642a7",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": "off",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        -720
+      ],
+      "id": "7c13a531-0e7f-4473-99c3-23322304faa2",
+      "name": "If1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send text": {
+      "main": [
+        []
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)": {
+      "main": [
+        [
+          {
+            "node": "Send text1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "74417465-7a02-4d4d-b25e-eb97c15f72d8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1570fe637cb9b0f747c885bfc880eeff18c513418243a76fe045749a8150669c"
+  },
+  "id": "MsMS74mNX68YFnZB",
+  "tags": []
+}
